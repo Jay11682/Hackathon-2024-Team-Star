@@ -11,32 +11,59 @@ def preprocess_image(image):
     # Convert to grayscale
     gray_img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     
-    # Find contours to identify the central region
-    contours, _ = cv2.findContours(gray_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Apply thresholding to segment the meat portion
+    _, binary_img = cv2.threshold(gray_img, 105, 255, cv2.THRESH_BINARY)
+    
+    # Invert the binary image
+    binary_img = cv2.bitwise_not(binary_img)
+    
+    # Find contours in the binary image
+    contours, _ = cv2.findContours(binary_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Find the contour with the largest area
     largest_contour = max(contours, key=cv2.contourArea)
-    x, y, w, h = cv2.boundingRect(largest_contour)
     
-    # Crop the central region
-    central_region = gray_img[y:y+h, x:x+w]
+    # Create a mask for the largest contour
+    mask = np.zeros_like(gray_img)
+    cv2.drawContours(mask, [largest_contour], -1, 255, thickness=cv2.FILLED)
     
-    return central_region
+    # Apply the mask to the original grayscale image to extract the meat portion
+    meat_portion = cv2.bitwise_and(gray_img, gray_img, mask=mask)
+    
+    return meat_portion
 
 # Function to extract features from an image
 def extract_features(image):
-    # Calculate the total number of pixels in the central region
+    # Define thresholds for fat and meat
+    fat_threshold = 100
+    meat_threshold = 200
+    
+    # Calculate the total number of pixels in the image
     total_pixels = image.shape[0] * image.shape[1]
     
-    # Calculate the percentage of white pixels (fat content) in the central region
-    white_pixels = np.sum(image == 255)  # Assuming white pixels are coded as 255
-    white_percentage = (white_pixels / total_pixels) * 100
+    # Initialize counters for fat and meat pixels
+    fat_pixels = 0
+    meat_pixels = 0
     
-    return white_percentage
+    # Iterate through each pixel in the image
+    for row in image:
+        for pixel in row:
+            if pixel < fat_threshold:
+                fat_pixels += 1
+            elif fat_threshold <= pixel < meat_threshold:
+                meat_pixels += 1
+    
+    # Calculate the percentage of fat and meat pixels
+    fat_percentage = (fat_pixels / total_pixels) * 100
+    meat_percentage = (meat_pixels / total_pixels) * 100
+    
+    return fat_percentage, meat_percentage
 
 # Function to write data to a CSV file
 def write_to_csv(data, filename):
     with open(filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(['Image', 'Percentage_of_White_Fat_Content'])
+        writer.writerow(['Image', 'Percentage_of_Gray_Fat_Content'])
         writer.writerows(data)
 
 # Load images and preprocess them
@@ -50,32 +77,26 @@ def preprocess_images(folder_path):
     return data
 
 # Load training images and preprocess them
-training_folder = './Path1 Challenge Training Images'
+training_folder = './smalltrainset'
 training_data = preprocess_images(training_folder)
 
 # Extract features from training images
 training_features = []
 for filename, central_region in training_data:
     features = extract_features(central_region)
-    training_features.append([filename, features])
-
-# Pad features with zeros to ensure consistent length
-for i in range(len(training_features)):
-    training_features[i] += [0] * (1 - len(training_features[i]))
+    training_features.append([filename] + list(features))
+    print(filename, " trained")
 
 # Load validation images and preprocess them
-validation_folder = './Path1 Challenge Images for Validation'
+validation_folder = './smallvalset'
 validation_data = preprocess_images(validation_folder)
 
 # Extract features from validation images
 validation_features = []
 for filename, central_region in validation_data:
     features = extract_features(central_region)
-    validation_features.append([filename, features])
-
-# Pad features with zeros to ensure consistent length
-for i in range(len(validation_features)):
-    validation_features[i] += [0] * (1 - len(validation_features[i]))
+    validation_features.append([filename] + list(features))
+    print(filename, " validated")
 
 # Write training data to CSV
 write_to_csv(training_features, 'training_data.csv')
@@ -99,4 +120,4 @@ y_pred = model.predict(X_val)
 
 # Evaluate the model
 mse = mean_squared_error(y_val, y_pred)
-print("Mean Squared Error on Validation Set: ", mse)
+print("Mean Squared Error on Validation Set:", mse)

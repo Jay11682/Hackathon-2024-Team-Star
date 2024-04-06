@@ -7,7 +7,7 @@ def preprocess_image(image_path):
     gray_img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     
     # Apply thresholding to segment the meat portion
-    _, binary_img = cv2.threshold(gray_img, 127, 255, cv2.THRESH_BINARY)
+    _, binary_img = cv2.threshold(gray_img, 110, 255, cv2.THRESH_BINARY)
     
     # Invert the binary image
     binary_img = cv2.bitwise_not(binary_img)
@@ -56,7 +56,7 @@ def extract_features(image):
 
 
 # Load an example image
-image_path = './Path1 Challenge Images for Validation/00001001-2.tif'
+image_path = './Path1 Challenge Images for Validation/00001007-2.tif'
 
 # Preprocess the image
 processed_image = preprocess_image(image_path)
