@@ -13,13 +13,12 @@ total_fat_percentages = {
 # Load the data from the spreadsheet
 dataframe = pd.read_excel('Path1 Challenge Training Data.xlsx')
 
-def process_image_to_black_and_white(image_path):
+def process_image_to_grayscale(image_path):
     image = cv2.imread(image_path)
     grayimage = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    _, thresholded_img = cv2.threshold(grayimage, 95, 255, cv2.THRESH_BINARY)
-    return thresholded_img
+    return grayimage
 
-# hi = process_image_to_black_and_white('./Path1 Challenge Images for Validation/00001001-2.tif')
+# hi = process_image_to_grayscale('./Path1 Challenge Images for Validation/00001001-2.tif')
 # cv2.imshow("Display window", hi)
 # cv2.waitKey(0)
 
