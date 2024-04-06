@@ -23,18 +23,14 @@ def preprocess_image(image):
 
 # Function to extract features from an image
 def extract_features(image):
-    # Divide the image into segments (for now, use a dummy implementation)
-    segments = [image]
+    # Calculate the total number of pixels in the central region
+    total_pixels = image.shape[0] * image.shape[1]
     
-    # Calculate the percentage of white pixels (fat content) in each segment
-    white_percentages = []
-    for segment in segments:
-        total_pixels = segment.shape[0] * segment.shape[1]
-        white_pixels = np.sum(segment == 255)  # Assuming white pixels are coded as 255
-        white_percentage = (white_pixels / total_pixels) * 100
-        white_percentages.append(white_percentage)
+    # Calculate the percentage of white pixels (fat content) in the central region
+    white_pixels = np.sum(image == 255)  # Assuming white pixels are coded as 255
+    white_percentage = (white_pixels / total_pixels) * 100
     
-    return white_percentages
+    return white_percentage
 
 # Function to write data to a CSV file
 def write_to_csv(data, filename):
@@ -61,7 +57,11 @@ training_data = preprocess_images(training_folder)
 training_features = []
 for filename, central_region in training_data:
     features = extract_features(central_region)
-    training_features.append([filename] + features)
+    training_features.append([filename, features])
+
+# Pad features with zeros to ensure consistent length
+for i in range(len(training_features)):
+    training_features[i] += [0] * (1 - len(training_features[i]))
 
 # Load validation images and preprocess them
 validation_folder = './Path1 Challenge Images for Validation'
@@ -71,7 +71,11 @@ validation_data = preprocess_images(validation_folder)
 validation_features = []
 for filename, central_region in validation_data:
     features = extract_features(central_region)
-    validation_features.append([filename] + features)
+    validation_features.append([filename, features])
+
+# Pad features with zeros to ensure consistent length
+for i in range(len(validation_features)):
+    validation_features[i] += [0] * (1 - len(validation_features[i]))
 
 # Write training data to CSV
 write_to_csv(training_features, 'training_data.csv')
@@ -95,4 +99,4 @@ y_pred = model.predict(X_val)
 
 # Evaluate the model
 mse = mean_squared_error(y_val, y_pred)
-print("Mean Squared Error on Validation Set:", mse)
+print("Mean Squared Error on Validation Set: ", mse)
