@@ -39,5 +39,8 @@ for i in len(training photos):
 ````
 
 Libraries:
-OpenCV: image processing, grayscaling, analysis
-Image aggregation (analysis of multiple segments): NumPy, Pandas, XGBoost (boosted tree modeling)
+
+1) OpenCV: image processing, grayscaling, analysis
+
+2) Image aggregation (analysis of multiple segments): NumPy, Pandas, XGBoost (boosted tree modeling)
+...
