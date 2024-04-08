@@ -3,8 +3,9 @@ import cv2
 import numpy as np
 import csv
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+from scipy.stats import pearsonr
 
 # Function to preprocess an image
 def preprocess_image(image):
@@ -59,6 +60,13 @@ def extract_features(image):
     
     return fat_percentage, meat_percentage
 
+# Function to write data to a CSV file
+def write_to_csv(data, filename):
+    with open(filename, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['Image', 'Percentage_of_Gray_Fat_Content'])
+        writer.writerows(data)
+
 # Load images and preprocess them
 def preprocess_images(folder_path):
     data = []
@@ -91,8 +99,25 @@ for filename, central_region in validation_data:
     validation_features.append([filename] + list(features))
     print(filename, " validated")
 
-# Load the CSV file containing the known data
-known_data_file = './Path1 Challenge Training Data.csv'
+# Write training data to CSV
+write_to_csv(training_features, 'training_data.csv')
+
+# Write validation data to CSV
+write_to_csv(validation_features, 'validation_data.csv')
+
+# Split features and labels
+X_train = np.array([row[1:] for row in training_features])
+y_train = np.array([row[1] for row in training_features])
+
+# Initialize and train the regression model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Predict on the validation set
+y_pred = model.predict(X_train)
+
+# Correlate fat percentages with rating
+known_data_file = 'Path1 Challenge Training Data.csv'
 known_data = []
 with open(known_data_file, 'r') as csvfile:
     reader = csv.reader(csvfile)
@@ -100,38 +125,21 @@ with open(known_data_file, 'r') as csvfile:
     for row in reader:
         known_data.append(row)
 
-# Extract known ratings for validation images
-validation_results = []
-for filename, fat_percentage, _ in validation_features:
-    for row in known_data:
-        if filename in row[0]:
-            carcass_id = row[1]
-            numerical_rating = row[2]
+fat_percentages = [row[1] for row in training_features]
+grade_ratings = []
+for filename, fat_percentage in zip(training_features, fat_percentages):
+    found = False
+    for data in known_data:
+        if data[0] == filename:
+            grade_ratings.append([filename, fat_percentage, data[2]])
+            found = True
             break
-    else:
-        # If the filename is not found in known data, skip this image
-        continue
-    
-    # Classify fat percentage into categories
-    if fat_percentage < 400:
-        rating = 'Low Choice'
-    elif 400 <= fat_percentage < 500:
-        rating = 'Upper 2/3 Choice'
-    elif 500 <= fat_percentage < 700:
-        rating = 'Select'
-    elif 700 <= fat_percentage <= 1100:
-        rating = 'Standard'
-    else:
-        rating = 'Unknown'
+    if not found:
+        print(f"No data found for {filename}")
 
-    validation_results.append([filename, carcass_id, fat_percentage, numerical_rating, rating])
-
-# Print validation results
-print("Number of validation results:", len(validation_results))
-print("Validation results:", validation_results)
-
-# Write validation results to CSV
-with open('validation_results.csv', 'w', newline='') as csvfile:
+# Write training results to CSV
+with open('training_results.csv', 'w', newline='') as csvfile:
     writer = csv.writer(csvfile)
-    writer.writerow(['Image', 'Carcass_ID', 'Fat_Percentage', 'Numerical_Rating', 'Grade'])
-    writer.writerows(validation_results)
+    writer.writerow(['Image', 'Percentage_of_Gray_Fat_Content', 'Rating'])
+    writer.writerows(grade_ratings)
+    print("Training results have been written to 'training_results.csv'.")
